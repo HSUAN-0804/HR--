@@ -66,8 +66,6 @@
       <div class="kv">
         <div>距離店面</div><div><b id="distText">--</b></div>
         <div>圍欄規則</div><div><b id="fenceText">{{ GEOFENCE_METERS }}m 內可打卡</b></div>
-
-        <!-- ✅ 新增：顯示 LINE userId，方便貼到 employees -->
         <div>我的LINE ID</div><div><b id="uidText">--</b></div>
       </div>
 
@@ -127,12 +125,14 @@
 
       if(!liff.isLoggedIn()){
         pillLogin.textContent = '未登入';
+
         // ✅ 若不是在 LINE 內（電腦測試），就不要強制跳登入，避免一直被導走
         if(!liff.isInClient()){
           setStatus('warn', '請用手機 LINE 內開啟此頁面才能打卡（此頁為 LIFF）。');
           helloEl.textContent = '請用 LINE 打開此頁。';
           return;
         }
+
         setStatus('warn', '請先登入 LINE 才能打卡。');
         liff.login();
         return;
@@ -166,7 +166,7 @@
         (pos)=>{
           lastPos = pos;
           pillGps.textContent = '定位已取得';
-          distText.textContent = '已取得（由後端判斷 50m）';
+          distText.textContent = '已取得（由後端判斷圍欄）';
           setStatus('ok', '定位成功，可以打卡。');
           resolve(pos);
         },
@@ -206,18 +206,17 @@
       const data = await resp.json();
 
       if(data.ok){
-  setStatus('ok', `✅ 打卡成功｜距離 ${data.distance_m}m`);
+        setStatus('ok', `✅ 打卡成功｜距離 ${data.distance_m}m`);
 
-  // ✅ 成功後自動關閉（只在 LINE 內才關）
-  if (liff && liff.isInClient && liff.isInClient()) {
-    setTimeout(() => {
-      try { liff.closeWindow(); } catch(e) {}
-    }, 800); // 0.8 秒，讓使用者先看到成功提示
-  }
-} else {
-  setStatus('bad', data.message || '打卡失敗');
-}
-
+        // ✅ 成功後自動關閉 LIFF（只在 LINE 內才關）
+        if (window.liff && liff.isInClient && liff.isInClient()) {
+          setTimeout(() => {
+            try { liff.closeWindow(); } catch(e) {}
+          }, 800);
+        }
+      }else{
+        setStatus('bad', data.message || '打卡失敗');
+      }
     }catch(err){
       setStatus('bad', '送出失敗：' + (err && err.message ? err.message : err));
     }
@@ -231,7 +230,7 @@
         return;
       }
       await navigator.clipboard.writeText(uid);
-      setStatus('ok', '✅ 已複製 LINE ID，請貼到 Sheets 的 employees -> line_user_id');
+      setStatus('ok', '✅ 已複製 LINE ID，請貼到 Sheets 的 employees → line_user_id');
     }catch(e){
       // iOS 有時不支援 clipboard API，就用 fallback
       const uid = (profile && profile.userId) ? profile.userId : uidText.textContent;
@@ -241,7 +240,7 @@
       ta.select();
       document.execCommand('copy');
       document.body.removeChild(ta);
-      setStatus('ok', '✅ 已複製 LINE ID，請貼到 Sheets 的 employees -> line_user_id');
+      setStatus('ok', '✅ 已複製 LINE ID，請貼到 Sheets 的 employees → line_user_id');
     }
   });
 
